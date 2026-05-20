@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Dashboard - LSTM Kinyarwanda Speech Recognition Training">
+    <meta name="theme-color" content="#6f42c1">
+    <title>Admin Dashboard - LSTM Kinyarwanda Speech Recognition</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6f42c1;
+            --secondary-color: #20c997;
+            --danger-color: #dc3545;
+            --success-color: #198754;
+            --light-bg: #f8f9fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 1.5rem 0;
+            color: white;
+            border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .container-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--light-bg);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(111, 66, 193, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(111, 66, 193, 0.02);
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover {
+            background: rgba(111, 66, 193, 0.05);
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: rgba(111, 66, 193, 0.1);
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            color: #666;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+        }
+
+        .btn-custom {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(111, 66, 193, 0.3);
+            color: white;
+        }
+
+        .btn-secondary-custom {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #18a689;
+            color: white;
+        }
+
+        .result-box {
+            background: rgba(111, 66, 193, 0.05);
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1.5rem;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .result-text {
+            color: #666;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast.success i {
+            color: var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .toast.error i {
+            color: var(--danger-color);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(300px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .queue-item {
+            background: rgba(111, 66, 193, 0.05);
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .queue-item.learned {
+            background: rgba(25, 135, 84, 0.05);
+            border-left-color: var(--success-color);
+        }
+
+        .queue-timestamp {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(111, 66, 193, 0.2);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-area {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <h1>
+                <i class="fas fa-brain"></i> Admin Dashboard
+            </h1>
+            <a href="/admin/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-main">
+        <!-- Statistics Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-chart-bar"></i> Background Learning Statistics
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Samples</div>
+                    <div class="stat-value" id="totalSamples">{{ stats.total_samples }}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #20c997 0%, #18a689 100%);">
+                    <div class="stat-label">Learned</div>
+                    <div class="stat-value" id="learnedCount">{{ stats.learned }}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                    <div class="stat-label">Pending</div>
+                    <div class="stat-value" id="pendingCount">{{ stats.pending }}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" style="font-size: 1.5rem;">
+                        <i class="fas {{ 'fa-check-circle' if stats.learning_enabled else 'fa-times-circle' }}"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-graduation-cap"></i> Train Model on Custom Data
+            </div>
+
+            <p style="color: #666; margin-bottom: 1.5rem;">
+                Upload audio and provide a transcript to train the model on custom data.
+                This improves accuracy for your specific use case.
+            </p>
+
+            <!-- Upload Area -->
+            <div class="upload-area" id="trainingUploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-microphone"></i>
+                </div>
+                <p class="upload-text" id="uploadText">
+                    Drag & drop audio file here<br><small>or click to select</small>
+                </p>
+            </div>
+            <input type="file" id="trainingAudioInput" style="display: none;" accept=".wav,.mp3,.ogg,.m4a">
+
+            <!-- Transcript Input -->
+            <div class="form-group">
+                <label for="trainingTranscript">
+                    <i class="fas fa-pen"></i> Correct Transcript
+                </label>
+                <textarea
+                    id="trainingTranscript"
+                    rows="3"
+                    placeholder="Type the correct Kinyarwanda text for the audio..."
+                    style="font-family: 'Segoe UI', sans-serif;"
+                ></textarea>
+            </div>
+
+            <!-- Train Button -->
+            <button class="btn-custom btn-primary-custom" id="trainButton" style="width: 100%; margin-bottom: 1rem;">
+                <i class="fas fa-play"></i> Train on This Sample
+            </button>
+
+            <!-- Training Status -->
+            <div id="trainingStatus" class="result-box" style="display: none;">
+                <div class="result-label" id="trainingStatusLabel">Training Status</div>
+                <div class="result-text" id="trainingStatusText"></div>
+            </div>
+
+            <!-- Training Stats -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+                <div class="result-box">
+                    <div class="result-label">Loss</div>
+                    <div class="result-text" id="trainingLoss">-- </div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Samples Trained</div>
+                    <div class="result-text" id="samplesTrained">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Training Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-cogs"></i> Background Training Control
+            </div>
+
+            <p style="color: #666; margin-bottom: 1.5rem;">
+                The system silently learns from all transcriptions made by users.
+                Trigger background training to update the model with queued samples.
+            </p>
+
+            <button class="btn-custom btn-secondary-custom" id="runBackgroundBtn" style="margin-bottom: 1.5rem; width: 100%;">
+                <i class="fas fa-play"></i> Run Background Training Now
+            </button>
+
+            <div id="backgroundStatus" class="result-box" style="display: none;">
+                <div class="result-label" id="bgStatusLabel">Background Training</div>
+                <div class="result-text" id="bgStatusText"></div>
+            </div>
+        </div>
+
+        <!-- Save Model Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-save"></i> Model Checkpoint
+            </div>
+
+            <p style="color: #666; margin-bottom: 1.5rem;">
+                Save the current model state to preserve improvements from training.
+            </p>
+
+            <button class="btn-custom btn-primary-custom" id="saveModelBtn" style="width: 100%;">
+                <i class="fas fa-download"></i> Save Model Checkpoint
+            </button>
+
+            <div id="saveStatus" class="result-box" style="display: none;">
+                <div class="result-label">Save Status</div>
+                <div class="result-text" id="saveStatusText"></div>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-info-circle"></i> How Background Learning Works
+            </div>
+
+            <ol style="color: #666; line-height: 1.8; padding-left: 1.5rem;">
+                <li>When users transcribe audio on the main page, samples are silently queued</li>
+                <li>Admin can review queued samples and trigger background training</li>
+                <li>Model trains on these samples with low learning rate (safer)</li>
+                <li>Trained samples are marked as learned and removed from queue</li>
+                <li>Model improvements are saved automatically</li>
+                <li>Process repeats continuously to improve accuracy</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script>
+        // Global variables
+        let selectedFile = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupUploadArea();
+            setupTrainButton();
+            setupBackgroundButton();
+            setupSaveButton();
+            loadStats();
+        });
+
+        function setupUploadArea() {
+            const uploadArea = document.getElementById('trainingUploadArea');
+            const fileInput = document.getElementById('trainingAudioInput');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    selectedFile = e.dataTransfer.files[0];
+                    updateUploadUI();
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    selectedFile = e.target.files[0];
+                    updateUploadUI();
+                }
+            });
+        }
+
+        function updateUploadUI() {
+            const uploadArea = document.getElementById('trainingUploadArea');
+            const uploadText = document.getElementById('uploadText');
+            if (selectedFile) {
+                uploadText.innerHTML = `<i class="fas fa-check"></i> <strong>${selectedFile.name}</strong> selected<br><small>${(selectedFile.size / 1024 / 1024).toFixed(2)} MB</small>`;
+            }
+        }
+
+        function setupTrainButton() {
+            document.getElementById('trainButton').addEventListener('click', trainOnSample);
+        }
+
+        function setupBackgroundButton() {
+            document.getElementById('runBackgroundBtn').addEventListener('click', runBackgroundTraining);
+        }
+
+        function setupSaveButton() {
+            document.getElementById('saveModelBtn').addEventListener('click', saveModel);
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function trainOnSample() {
+            if (!selectedFile) {
+                showToast('Please select an audio file', 'error');
+                return;
+            }
+
+            const transcript = document.getElementById('trainingTranscript').value.trim();
+            if (!transcript) {
+                showToast('Please enter a transcript', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('trainButton');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Training...';
+
+            const formData = new FormData();
+            formData.append('audio', selectedFile);
+            formData.append('transcript', transcript);
+            formData.append('learning_rate', 0.0001);
+
+            try {
+                const response = await fetch('/api/train', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('trainingStatus');
+                const statusText = document.getElementById('trainingStatusText');
+                const statusLabel = document.getElementById('trainingStatusLabel');
+
+                if (data.success) {
+                    statusLabel.innerHTML = '<i class="fas fa-check-circle" style="color: #198754;"></i> Training Complete';
+                    statusText.innerHTML = `✓ ${data.message || 'Training completed successfully'}`;
+                    document.getElementById('trainingLoss').textContent = data.training_state?.loss?.toFixed(4) || '---';
+                    document.getElementById('samplesTrained').textContent = data.training_state?.samples_trained || 0;
+                    showToast('Training successful!', 'success');
+                    loadStats();
+                } else {
+                    statusLabel.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #dc3545;"></i> Training Failed';
+                    statusText.innerHTML = `✗ ${data.error || 'Training failed'}`;
+                    showToast(data.error || 'Training failed', 'error');
+                }
+                statusDiv.style.display = 'block';
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Train on This Sample';
+            }
+        }
+
+        async function runBackgroundTraining() {
+            const btn = document.getElementById('runBackgroundBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Processing...';
+
+            try {
+                const response = await fetch('/admin/train-background', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('backgroundStatus');
+                const statusText = document.getElementById('bgStatusText');
+                const statusLabel = document.getElementById('bgStatusLabel');
+
+                if (data.success) {
+                    statusLabel.innerHTML = '<i class="fas fa-check-circle" style="color: #198754;"></i> Complete';
+                    statusText.innerHTML = `✓ ${data.message}`;
+                    showToast(`Trained on ${data.trained} samples in background`, 'success');
+                    loadStats();
+                } else {
+                    statusLabel.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #dc3545;"></i> Error';
+                    statusText.innerHTML = `✗ ${data.error || 'Failed'}`;
+                    showToast('Background training failed', 'error');
+                }
+                statusDiv.style.display = 'block';
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Run Background Training Now';
+            }
+        }
+
+        async function saveModel() {
+            const btn = document.getElementById('saveModelBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+            try {
+                const response = await fetch('/api/model/save', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('saveStatus');
+                const statusText = document.getElementById('saveStatusText');
+
+                if (data.success) {
+                    statusText.innerHTML = `✓ ${data.message}`;
+                    showToast('Model saved successfully!', 'success');
+                } else {
+                    statusText.innerHTML = `✗ ${data.error || 'Failed to save'}`;
+                    showToast('Failed to save model', 'error');
+                }
+                statusDiv.style.display = 'block';
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-download"></i> Save Model Checkpoint';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/admin/learning-stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalSamples').textContent = data.stats.total_samples;
+                    document.getElementById('learnedCount').textContent = data.stats.learned;
+                    document.getElementById('pendingCount').textContent = data.stats.pending;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Refresh stats every 10 seconds
+        setInterval(loadStats, 10000);
+    </script>
+</body>
+</html>

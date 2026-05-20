@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LSTM Kinyarwanda Speech Recognition - Convert Kinyarwanda speech to text">
+    <meta name="theme-color" content="#6f42c1">
+    <title>LSTM Kinyarwanda Speech Recognition</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/recordrtc@5.6.2/RecordRTC.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #6f42c1;
+            --secondary-color: #20c997;
+            --danger-color: #dc3545;
+            --success-color: #198754;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            color: white;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 0.3rem;
+        }
+
+        .container-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .card-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(111, 66, 193, 0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover {
+            background: rgba(111, 66, 193, 0.1);
+            border-color: var(--secondary-color);
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            background: rgba(111, 66, 193, 0.2);
+            border-color: var(--secondary-color);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            color: #666;
+            margin: 0.5rem 0;
+        }
+
+        .upload-text strong {
+            color: var(--primary-color);
+        }
+
+        .btn-custom {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), #764ba2);
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, #5a36a1, #654191);
+            color: white;
+        }
+
+        .btn-secondary-custom {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #1fa07e;
+            color: white;
+        }
+
+        .recording-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #ffe6e6;
+            color: var(--danger-color);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .recording-indicator.active .pulse {
+            animation: pulse 0.7s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .result-box {
+            background: var(--light-bg);
+            border-left: 5px solid var(--secondary-color);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .result-box.error {
+            border-left-color: var(--danger-color);
+            background: #ffe6e6;
+        }
+
+        .result-box.success {
+            border-left-color: var(--success-color);
+            background: #e6ffe6;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .result-text {
+            font-size: 1.1rem;
+            color: #333;
+            word-break: break-word;
+            margin: 0.5rem 0;
+        }
+
+        .confidence-score {
+            display: inline-block;
+            background: var(--secondary-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(111, 66, 193, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-copy {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #0b5ed7;
+        }
+
+        .btn-download {
+            background: #198754;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #157347;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #5c636a;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            color: #666;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            background: var(--light-bg);
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-time {
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-text {
+            color: #333;
+            margin: 0.5rem 0;
+            word-break: break-word;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .status-badge.online {
+            background: #e6ffe6;
+            color: var(--success-color);
+        }
+
+        .status-badge.offline {
+            background: #ffe6e6;
+            color: var(--danger-color);
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.1);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: auto;
+            font-size: 0.9rem;
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease-out;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .card-container {
+                padding: 1.5rem;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .section-title {
+                font-size: 1.1rem;
+            }
+
+            .upload-area {
+                padding: 1.5rem 1rem;
+            }
+
+            .upload-icon {
+                font-size: 2rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons button {
+                width: 100%;
+            }
+
+            .tabs {
+                gap: 0.5rem;
+            }
+
+            .tab-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .result-box {
+                padding: 1rem;
+            }
+
+            .toast-notification {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+
+            .header {
+                padding: 0.75rem;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .header .subtitle {
+                font-size: 0.8rem;
+            }
+
+            .container-main {
+                padding: 0.5rem;
+            }
+
+            .card-container {
+                padding: 1rem;
+                border-radius: 8px;
+            }
+
+            .upload-icon {
+                font-size: 1.5rem;
+            }
+
+            .result-text {
+                font-size: 1rem;
+            }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--light-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container" style="max-width: 900px;">
+            <h1>
+                <i class="fas fa-microphone"></i>
+                LSTM Kinyarwanda Speech Recognition
+            </h1>
+            <div class="subtitle">Convert Kinyarwanda speech to text instantly</div>
+            <div id="statusBadge" class="status-badge online">
+                <i class="fas fa-circle"></i> Ready
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container-main">
+        <div class="card-container">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('transcribe')">
+                    <i class="fas fa-microphone"></i> Transcribe
+                </button>
+                <button class="tab-btn" onclick="showTab('history')">
+                    <i class="fas fa-history"></i> History
+                </button>
+                <button class="tab-btn" onclick="showTab('stats')">
+                    <i class="fas fa-chart-bar"></i> Stats
+                </button>
+                <button class="tab-btn" onclick="showTab('train')">
+                    <i class="fas fa-brain"></i> Train
+                </button>
+            </div>
+
+            <!-- Transcribe Tab -->
+            <div id="transcribe" class="tab-content active">
+                <!-- Recording Options -->
+                <div class="section-title">
+                    <i class="fas fa-upload"></i> Upload or Record Audio
+                </div>
+
+                <!-- Upload Area -->
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept=".wav,.mp3,.ogg,.m4a" style="display: none;">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-text">
+                        <strong>Drag and drop</strong> your audio file here
+                    </div>
+                    <div class="upload-text" style="font-size: 0.9rem;">
+                        or click to browse (WAV, MP3, OGG, M4A)
+                    </div>
+                </div>
+
+                <!-- Recording Button -->
+                <div style="text-align: center; margin: 1.5rem 0;">
+                    <button class="btn-custom btn-secondary-custom" id="recordBtn" onclick="toggleRecording()">
+                        <i class="fas fa-circle"></i> Start Recording
+                    </button>
+                    <div id="recordingIndicator" class="recording-indicator" style="display: none;">
+                        <span class="pulse">●</span>
+                        Recording: <span id="recordingTime">0:00</span>
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>Processing your audio...</div>
+                    <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">This may take a few moments</div>
+                </div>
+
+                <!-- Results -->
+                <div class="result-box" id="resultBox">
+                    <div class="result-label">Transcription Result:</div>
+                    <div class="result-text" id="resultText"></div>
+                    <div id="confidenceBox"></div>
+                    <div id="errorMessage"></div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button class="btn-copy" onclick="copyToClipboard()">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button class="btn-download" onclick="downloadTranscript()">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button class="btn-clear" onclick="clearResult()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selected File Display -->
+                <div id="selectedFileBox" style="margin-top: 1.5rem; display: none;">
+                    <div style="padding: 1rem; background: #e6f3ff; border-radius: 8px; color: #333;">
+                        <i class="fas fa-file-audio"></i>
+                        Selected: <strong id="selectedFileName"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history" class="tab-content">
+                <div class="section-title">
+                    <i class="fas fa-history"></i> Transcription History
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalTranscriptions">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="recent7Days">0</div>
+                        <div class="stat-label">Last 7 Days</div>
+                    </div>
+                </div>
+
+                <div class="history-list" id="historyList">
+                    <div style="text-align: center; color: #999; padding: 2rem;">
+                        <i class="fas fa-inbox"></i>
+                        <div>No transcriptions yet</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <button class="btn-custom btn-secondary-custom" onclick="downloadHistory()">
+                        <i class="fas fa-download"></i> Export History
+                    </button>
+                    <button class="btn-custom btn-clear" style="margin-left: 0.5rem;" onclick="confirmClearHistory()">
+                        <i class="fas fa-trash"></i> Clear History
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Tab -->
+            <div id="stats" class="tab-content">
+                <div class="section-title">
+                    <i class="fas fa-chart-bar"></i> Statistics
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Total Transcriptions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statToday">0</div>
+                        <div class="stat-label">Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statWeek">0</div>
+                        <div class="stat-label">This Week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">13.2M</div>
+                        <div class="stat-label">Model Parameters</div>
+                    </div>
+                </div>
+
+                <div style="background: var(--light-bg); padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem;">
+                    <div style="font-weight: 600; margin-bottom: 1rem; color: var(--primary-color);">Model Information</div>
+                    <div style="font-size: 0.9rem; color: #666; line-height: 1.8;">
+                        <div><strong>Architecture:</strong> BiLSTM with Multi-Head Attention</div>
+                        <div><strong>Layers:</strong> 3 BiLSTM + 1 Attention + 1 Dense</div>
+                        <div><strong>Language:</strong> Kinyarwanda</div>
+                        <div><strong>Vocab Size:</strong> 27 characters</div>
+                        <div><strong>Input Features:</strong> 13 MFCC coefficients</div>
+                        <div><strong>Sequence Length:</strong> 300 timesteps</div>
+                        <div><strong>Status:</strong> <span id="modelStatus">Ready</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Train Tab -->
+            <div id="train" class="tab-content" style="display: none;">
+                <div class="section-title">
+                    <i class="fas fa-brain"></i> Fine-tune Model (Continuous Learning)
+                </div>
+
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    Train the model on your own Kinyarwanda speech samples. The model will learn and adapt to your voice and accent.
+                </p>
+
+                <!-- Training Upload Area -->
+                <div class="upload-area" id="trainingUploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <div class="upload-text">
+                        <strong>Upload Audio for Training</strong>
+                    </div>
+                    <div class="upload-text" style="font-size: 0.9rem;">
+                        Drag & drop or click to select an audio file
+                    </div>
+                </div>
+                <input type="file" id="trainingAudioInput" style="display: none;" accept=".wav,.mp3,.ogg,.m4a">
+
+                <!-- Transcript Input -->
+                <div class="mb-3">
+                    <label for="trainingTranscript" style="font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem; display: block;">Correct Transcript</label>
+                    <textarea id="trainingTranscript" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-family: monospace; font-size: 0.95rem;" rows="3" placeholder="Type the correct Kinyarwanda text for the audio..."></textarea>
+                </div>
+
+                <!-- Train Button -->
+                <button class="btn-custom btn-primary-custom" id="trainButton" style="width: 100%; margin-bottom: 1rem;">
+                    <i class="fas fa-play"></i> Train on This Sample
+                </button>
+
+                <!-- Training Status -->
+                <div id="trainingStatus" class="result-box" style="display: none;">
+                    <div class="result-label">Training Status</div>
+                    <div class="result-text" id="trainingStatusText"></div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid" style="margin-top: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="currentLoss">-</div>
+                        <div class="stat-label">Current Loss</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="samplesTrained">0</div>
+                        <div class="stat-label">Samples Trained</div>
+                    </div>
+                </div>
+
+                <!-- Save Model Button -->
+                <button class="btn-custom btn-secondary-custom" id="saveModelButton" style="width: 100%; margin-top: 1.5rem;">
+                    <i class="fas fa-save"></i> Save Model Checkpoint
+                </button>
+
+                <!-- Instructions -->
+                <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 1.5rem; border-radius: 8px; margin-top: 2rem;">
+                    <div style="font-weight: 600; color: #1976D2; margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> How to Train the Model
+                    </div>
+                    <ol style="margin-bottom: 0; padding-left: 1.5rem; color: #666; line-height: 1.8;">
+                        <li>Upload a clear Kinyarwanda speech recording (WAV, MP3, OGG, or M4A)</li>
+                        <li>Type the correct transcription of what was said</li>
+                        <li>Click "Train on This Sample" to train the model</li>
+                        <li>Repeat 5-10 times with different sentences for better results</li>
+                        <li>Click "Save Model Checkpoint" to save your trained model</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div>LSTM Kinyarwanda Speech Recognition v1.0</div>
+        <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">
+            Advanced speech-to-text powered by TensorFlow and Librosa
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingStartTime;
+        let recordingInterval;
+        let currentTranscript = null;
+        let audioStream = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            loadHistory();
+            loadStats();
+            checkModelStatus();
+        });
+
+        function initializeEventListeners() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Highlight drop area
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('dragover');
+                }, false);
+            });
+
+            // Handle drop
+            uploadArea.addEventListener('drop', handleDrop, false);
+
+            // Handle click
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // Handle file input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!['audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/mp4'].includes(file.type)) {
+                showToast('Invalid file type. Please upload WAV, MP3, OGG, or M4A.', 'error');
+                return;
+            }
+
+            document.getElementById('selectedFileName').textContent = file.name;
+            document.getElementById('selectedFileBox').style.display = 'block';
+
+            transcribeAudio(file);
+        }
+
+        function transcribeAudio(file) {
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('resultBox').classList.remove('show');
+
+            fetch('/api/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').classList.remove('active');
+
+                if (data.success) {
+                    currentTranscript = data.transcript;
+                    showResult(data);
+                } else {
+                    showError(data.error || 'Transcription failed');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.remove('active');
+                showError(error.message || 'Network error');
+            });
+        }
+
+        function showResult(data) {
+            const resultBox = document.getElementById('resultBox');
+            const resultText = document.getElementById('resultText');
+            const confidenceBox = document.getElementById('confidenceBox');
+            const errorMessage = document.getElementById('errorMessage');
+
+            resultText.textContent = data.transcript;
+            errorMessage.innerHTML = '';
+
+            if (data.confidence !== undefined) {
+                confidenceBox.innerHTML = `<div class="confidence-score">
+                    <i class="fas fa-check-circle"></i> Confidence: ${data.confidence}%
+                </div>`;
+            }
+
+            resultBox.classList.remove('error');
+            resultBox.classList.add('success', 'show');
+
+            showToast('Transcription complete!', 'success');
+            loadHistory();
+        }
+
+        function showError(message) {
+            const resultBox = document.getElementById('resultBox');
+            const errorMessage = document.getElementById('errorMessage');
+            const resultText = document.getElementById('resultText');
+
+            resultText.textContent = '';
+            errorMessage.innerHTML = `<div style="color: var(--danger-color); margin-top: 0.5rem;"><i class="fas fa-exclamation-circle"></i> ${message}</div>`;
+
+            resultBox.classList.remove('success');
+            resultBox.classList.add('error', 'show');
+
+            showToast('Transcription failed: ' + message, 'error');
+        }
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                showToast('🎤 Requesting microphone access...', 'info');
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('✓ Microphone access granted', audioStream);
+
+                try {
+                    // Try RecordRTC first
+                    mediaRecorder = new RecordRTC(audioStream, {
+                        type: 'audio',
+                        mimeType: 'audio/wav',
+                        sampleRate: 16000,
+                        desiredSampleRate: 16000,
+                        recorderType: RecordRTC.StereoAudioRecorder
+                    });
+                    console.log('✓ RecordRTC initialized:', mediaRecorder);
+                    mediaRecorder.startRecording();
+                } catch (rtcErr) {
+                    console.warn('RecordRTC failed, using MediaRecorder:', rtcErr);
+                    // Fallback to MediaRecorder
+                    recordedChunks = [];
+                    mediaRecorder = new MediaRecorder(audioStream);
+
+                    mediaRecorder.ondataavailable = (e) => {
+                        recordedChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        console.log('✓ Recording stopped, chunks:', recordedChunks.length);
+                        if (recordedChunks.length === 0) {
+                            showToast('❌ No audio recorded. Please try again.', 'error');
+                            return;
+                        }
+                        const audioBlob = new Blob(recordedChunks, { type: 'audio/wav' });
+                        const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+                        console.log('✓ Audio file created:', audioFile.size, 'bytes');
+                        transcribeAudio(audioFile);
+                    };
+
+                    mediaRecorder.start();
+                    console.log('✓ MediaRecorder started');
+                }
+
+                isRecording = true;
+                recordingStartTime = Date.now();
+
+                document.getElementById('recordBtn').classList.remove('btn-secondary-custom');
+                document.getElementById('recordBtn').classList.add('btn-danger');
+                document.getElementById('recordBtn').innerHTML = '<i class="fas fa-stop"></i> Stop Recording';
+                document.getElementById('recordingIndicator').style.display = 'inline-flex';
+
+                recordingInterval = setInterval(updateRecordingTime, 100);
+                showToast('🔴 Recording started! Speak now...', 'success');
+            } catch (err) {
+                console.error('Recording error:', err);
+                if (err.name === 'NotAllowedError') {
+                    showToast('❌ Microphone denied. Please allow access:\n\n1. Click the lock/info icon in address bar\n2. Find "Microphone" setting\n3. Change to "Allow"\n4. Try again', 'error');
+                } else if (err.name === 'NotFoundError') {
+                    showToast('❌ No microphone found. Please check:\n\n1. Microphone is plugged in\n2. No other app is using it\n3. Check Device Manager', 'error');
+                } else if (err.name === 'NotSupportedError') {
+                    showToast('❌ Recording not supported in this browser.\n\nTry: Chrome, Firefox, Safari, or Edge', 'error');
+                } else {
+                    showToast('❌ Microphone error: ' + err.message + '\n\nPlease check your microphone settings', 'error');
+                }
+            }
+        }
+
+        function stopRecording() {
+            console.log('Stopping recording...');
+
+            if (mediaRecorder) {
+                if (mediaRecorder.stopRecording) {
+                    // RecordRTC
+                    console.log('Using RecordRTC.stopRecording()');
+                    mediaRecorder.stopRecording((blob) => {
+                        console.log('✓ RecordRTC blob received:', blob.size, 'bytes');
+                        if (blob.size === 0) {
+                            showToast('❌ No audio recorded. Please try again.', 'error');
+                        } else {
+                            const audioFile = new File([blob], 'recording.wav', { type: 'audio/wav' });
+                            transcribeAudio(audioFile);
+                        }
+                    });
+                } else {
+                    // MediaRecorder
+                    console.log('Using MediaRecorder.stop()');
+                    mediaRecorder.stop();
+                }
+            }
+
+            // Stop the audio stream
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+
+            isRecording = false;
+
+            document.getElementById('recordBtn').classList.add('btn-secondary-custom');
+            document.getElementById('recordBtn').classList.remove('btn-danger');
+            document.getElementById('recordBtn').innerHTML = '<i class="fas fa-circle"></i> Start Recording';
+            document.getElementById('recordingIndicator').style.display = 'none';
+
+            clearInterval(recordingInterval);
+        }
+
+        function updateRecordingTime() {
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('recordingTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function copyToClipboard() {
+            if (currentTranscript) {
+                navigator.clipboard.writeText(currentTranscript).then(() => {
+                    showToast('Copied to clipboard!', 'success');
+                });
+            }
+        }
+
+        function downloadTranscript() {
+            if (currentTranscript) {
+                const element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(currentTranscript));
+                element.setAttribute('download', `transcript_${new Date().getTime()}.txt`);
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+                showToast('Download started!', 'success');
+            }
+        }
+
+        function clearResult() {
+            document.getElementById('resultBox').classList.remove('show');
+            document.getElementById('selectedFileBox').style.display = 'none';
+            currentTranscript = null;
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'history') {
+                loadHistory();
+            } else if (tabName === 'stats') {
+                loadStats();
+            }
+        }
+
+        function loadHistory() {
+            fetch('/api/history?limit=20')
+                .then(response => response.json())
+                .then(data => {
+                    const historyList = document.getElementById('historyList');
+                    const totalTranscriptions = document.getElementById('totalTranscriptions');
+
+                    if (data.history && data.history.length > 0) {
+                        historyList.innerHTML = data.history.map(item => {
+                            const date = new Date(item.timestamp);
+                            const timeStr = date.toLocaleTimeString();
+                            const dateStr = date.toLocaleDateString();
+                            return `
+                                <div class="history-item">
+                                    <div class="history-time">${dateStr} ${timeStr}</div>
+                                    <div class="history-text">${item.transcript}</div>
+                                    <span class="confidence-score" style="display: inline-block;">
+                                        Confidence: ${item.confidence}%
+                                    </span>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        historyList.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;"><i class="fas fa-inbox"></i><div>No transcriptions yet</div></div>';
+                    }
+
+                    totalTranscriptions.textContent = data.count;
+                });
+        }
+
+        function loadStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('statTotal').textContent = data.total_transcriptions;
+                        document.getElementById('recent7Days').textContent = data.recent_7_days;
+                    }
+                });
+        }
+
+        function checkModelStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.model_loaded) {
+                        document.getElementById('statusBadge').innerHTML = '<i class="fas fa-circle"></i> Ready';
+                        document.getElementById('statusBadge').classList.add('online');
+                        document.getElementById('modelStatus').textContent = 'Ready';
+                    } else {
+                        document.getElementById('statusBadge').innerHTML = '<i class="fas fa-circle"></i> Loading...';
+                        document.getElementById('modelStatus').textContent = 'Loading';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('statusBadge').innerHTML = '<i class="fas fa-circle"></i> Offline';
+                    document.getElementById('statusBadge').classList.remove('online');
+                    document.getElementById('statusBadge').classList.add('offline');
+                });
+        }
+
+        function downloadHistory() {
+            window.location.href = '/api/download-history';
+        }
+
+        function confirmClearHistory() {
+            if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+                fetch('/api/history/clear', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadHistory();
+                            showToast('History cleared!', 'success');
+                        }
+                    });
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.style.background = type === 'error' ? '#ffe6e6' : type === 'success' ? '#e6ffe6' : 'white';
+            toast.style.color = type === 'error' ? 'var(--danger-color)' : type === 'success' ? 'var(--success-color)' : '#333';
+            toast.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}`;
+
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(400px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Check model status on page load and periodically
+        setInterval(checkModelStatus, 30000);
+
+        // ===== TRAINING TAB JAVASCRIPT =====
+
+        // Training upload area
+        document.getElementById('trainingUploadArea')?.addEventListener('click', () => {
+            document.getElementById('trainingAudioInput').click();
+        });
+
+        document.getElementById('trainingUploadArea')?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            document.getElementById('trainingUploadArea').classList.add('dragover');
+        });
+
+        document.getElementById('trainingUploadArea')?.addEventListener('dragleave', () => {
+            document.getElementById('trainingUploadArea').classList.remove('dragover');
+        });
+
+        document.getElementById('trainingUploadArea')?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.getElementById('trainingUploadArea').classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('trainingAudioInput').files = files;
+                document.querySelector('#trainingUploadArea .upload-text').innerHTML =
+                    '<strong>' + files[0].name + ' selected</strong>';
+            }
+        });
+
+        document.getElementById('trainingAudioInput')?.addEventListener('change', () => {
+            const files = document.getElementById('trainingAudioInput').files;
+            if (files.length > 0) {
+                document.querySelector('#trainingUploadArea .upload-text').innerHTML =
+                    '<strong>' + files[0].name + ' selected</strong>';
+            }
+        });
+
+        // Train button
+        document.getElementById('trainButton')?.addEventListener('click', async () => {
+            const audioFile = document.getElementById('trainingAudioInput').files[0];
+            const transcript = document.getElementById('trainingTranscript').value.trim();
+
+            if (!audioFile) {
+                showToast('Please select an audio file', 'error');
+                return;
+            }
+
+            if (!transcript) {
+                showToast('Please provide the transcript', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+            formData.append('transcript', transcript);
+            formData.append('learning_rate', 0.0001);
+
+            const trainButton = document.getElementById('trainButton');
+            const originalText = trainButton.innerHTML;
+            trainButton.disabled = true;
+            trainButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training...';
+
+            try {
+                const response = await fetch('/api/train', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                const statusDiv = document.getElementById('trainingStatus');
+                const statusText = document.getElementById('trainingStatusText');
+
+                if (result.success) {
+                    statusDiv.classList.remove('error');
+                    statusDiv.classList.add('success');
+                    statusText.innerHTML = `<strong>✓ Training successful!</strong><br>Loss: ${result.training_state.loss.toFixed(4)}`;
+
+                    // Update stats
+                    document.getElementById('currentLoss').textContent = result.training_state.loss.toFixed(4);
+                    document.getElementById('samplesTrained').textContent = result.training_state.samples_trained;
+
+                    // Clear inputs
+                    document.getElementById('trainingTranscript').value = '';
+                    document.getElementById('trainingAudioInput').value = '';
+                    document.querySelector('#trainingUploadArea .upload-text').innerHTML =
+                        '<strong>Upload Audio for Training</strong>';
+
+                    showToast('✓ Model trained successfully!', 'success');
+                } else {
+                    statusDiv.classList.remove('success');
+                    statusDiv.classList.add('error');
+                    statusText.innerHTML = `<strong>✗ Training failed</strong><br>${result.error}`;
+                    showToast('Training failed: ' + result.error, 'error');
+                }
+
+                statusDiv.style.display = 'block';
+            } catch (error) {
+                const statusDiv = document.getElementById('trainingStatus');
+                statusDiv.classList.remove('success');
+                statusDiv.classList.add('error');
+                statusDiv.style.display = 'block';
+                document.getElementById('trainingStatusText').innerHTML =
+                    `<strong>✗ Error:</strong> ${error.message}`;
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                trainButton.disabled = false;
+                trainButton.innerHTML = originalText;
+            }
+        });
+
+        // Save model button
+        document.getElementById('saveModelButton')?.addEventListener('click', async () => {
+            const saveButton = document.getElementById('saveModelButton');
+            const originalText = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const response = await fetch('/api/model/save', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('✓ Model saved successfully!', 'success');
+                } else {
+                    showToast('✗ Failed to save model', 'error');
+                }
+            } catch (error) {
+                showToast('✗ Error saving model: ' + error.message, 'error');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
+            }
+        });
+    </script>
+</body>
+</html>
+
