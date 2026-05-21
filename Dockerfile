@@ -5,21 +5,18 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     libsndfile1 \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+        ffmpeg \
+            && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+            # Copy requirements
+            COPY requirements.txt .
+            RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entire project
-COPY . .
+            # Copy entire project
+            COPY . .
 
-# Set working directory to web_app
-WORKDIR /app/web_app
+            # Expose port
+            EXPOSE 5000
 
-# Expose port
-EXPOSE 5000
-
-# Run the app
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
+            # Run the app from the web_app subdirectory
+            CMD ["gunicorn", "--chdir", "/app/web_app", "-w", "1", "-b", "0.0.0.0:5000", "app:app"]
