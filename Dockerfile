@@ -1,4 +1,5 @@
 FROM python:3.11-slim
+# v3 cache bust - force full rebuild
 
 WORKDIR /app
 
