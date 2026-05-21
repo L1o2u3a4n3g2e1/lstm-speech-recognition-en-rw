@@ -1,8 +1,5 @@
 {
   "build": {
     "builder": "dockerfile"
-  },
-  "deploy": {
-                "startCommand": "gunicorn --chdir /app/web_app -w 1 -b 0.0.0.0:${{PORT}} app:app"
   }
 }
