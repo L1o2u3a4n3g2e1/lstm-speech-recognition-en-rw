@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11.9-slim
 # v3 cache bust - force full rebuild
 
 WORKDIR /app
